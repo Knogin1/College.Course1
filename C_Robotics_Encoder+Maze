@@ -1,0 +1,128 @@
+#include <rbc.h>
+#include <math.h>
+#define pi 3.14
+#define dkol 45
+#define drob 195
+#define mz 24
+#define bz 36
+
+//195
+
+float x1, r1, cor1 = 0;
+
+void moveEnc(int mm, int pw) {
+    float e1 = getMotorEncoder(motorA);
+
+    setMotorSpeed(motorA, 5);
+    setMotorSpeed(motorD, 5);
+    delay(200);
+
+
+    setMotorSpeed(motorA, pw);
+    setMotorSpeed(motorD, pw);
+    int a = (float) fabs((mm / (pi * dkol)) * 360);
+
+    while (((getMotorEncoder(motorA)) - e1) < (a - 50)) delay(5);{
+        setMotorSpeed(motorA, 5);
+        setMotorSpeed(motorD, 5);
+    }
+    while (((getMotorEncoder(motorA)) - e1) < (a)) delay(5);{
+        setMotorSpeed(motorA, 0);
+        setMotorSpeed(motorD, 0);
+        delay(100);
+    }
+}
+
+
+void turnEnc(int corn, int pw) {
+    int a = fabs(corn) * (bz / mz) * (drob / dkol);
+    resetMotorEncoder(motorA);
+    setMotorSpeed(motorA, -5*sgn(corn));
+    setMotorSpeed(motorD, 5*sgn(corn));
+    delay(200);
+
+    float e2 = a*1.1;
+
+    setMotorSpeed(motorA, -1*pw*sgn(corn));
+    setMotorSpeed(motorD, pw*sgn(corn));
+
+    while ((fabs(getMotorEncoder(motorA))) < e2-50) delay(5);{
+        setMotorSpeed(motorA, -5*sgn(corn));
+        setMotorSpeed(motorD, 5*sgn(corn));
+    }
+    while ((fabs(getMotorEncoder(motorA))) < e2) delay(5);{
+
+        setMotorSpeed(motorA, 0);
+        setMotorSpeed(motorD, 0);
+        delay(100);
+    }
+}
+
+void moveCord(float x2, float r2, int pw){
+    float a = x2 - x1;
+    float b = r2 - r1;
+    float way = sqrt(a * a + b * b);
+    float cor2 = ((atan2f(a, b) * 180) / 3.14) - cor1;
+    turnEnc(cor2, pw);
+    moveEnc(way, pw);
+    x1 = a;
+    r1 = b;
+    cor1 = cor2;
+}
+
+task main(){
+
+    int A[3];
+    int h;
+
+    for (int s = 0; s < 3 ; s++) {
+        for (int q = 0; q < 3; q++) {
+            turnEnc(-90, 50);
+            h = getUSDistance('4');
+            if (h < 60) {
+                turnEnc(90, 50);
+                moveEnc(310, 50);
+                if (q == 2) {
+                    turnEnc(-90, 50);
+                    A[s] = 3;
+                    break;
+                }
+            } else {
+                A[s] = q;
+                break;
+            }
+
+
+        }
+
+        moveEnc(580, 50);
+        turnEnc(-90, 50);
+        moveEnc(300 * A[s], 50);
+        turnEnc(180, 50);
+    }
+
+    moveEnc(300*A[2],50);
+    turnEnc(90,50);
+    moveEnc(580,50);
+
+    for(int i = 2; i > 0; i--){
+        //moveEnc(300*A[i],50);
+        if (A[i]>A[i-1]){
+            turnEnc(90,50);
+            moveEnc(300*(fabs(A[i]-A[i-1])),50);
+            turnEnc(-90,50);
+           // moveEnc(300*(fabs(A[3-i]-A[3-(i+1)])),50);
+        }
+        else if (A[i]<A[i-1]){
+            turnEnc(-90,50);
+            moveEnc(300*(fabs(A[i]-A[i-1])),50);
+            turnEnc(90,50);
+        }
+
+        moveEnc(580,50);
+    }
+
+    turnEnc(90,50);
+    moveEnc(300 * A[0], 50);
+
+}
