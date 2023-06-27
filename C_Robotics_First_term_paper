@@ -1,0 +1,138 @@
+#include <rbc.h>
+#include <math.h>
+#define pi 3.14
+#define dkol 45
+#define drob 195
+#define mz 24
+#define bz 36
+
+void stop_move() {
+    setMotorSpeed(motorA, 0);
+    setMotorSpeed(motorD, 0);
+}
+
+void moveEnc (int mm, int pw){
+    resetMotorEncoder(motorA);
+    resetMotorEncoder(motorD);
+
+    setMotorSpeed(motorA, 5*sgn(mm));
+    setMotorSpeed(motorD, 5*sgn(mm));
+    delay(200);
+
+    long dAlfa;
+
+    setMotorSpeed(motorA, pw*sgn(mm));
+    setMotorSpeed(motorD, pw*sgn(mm));
+
+    dAlfa = (long) ((fabs(mm) /(pi*45))*360); //угол поворота колеса для перемещения Lmm
+
+    while (fabs(getMotorEncoder(motorA)) < dAlfa){
+        delay(5);
+    }
+
+    setMotorSpeed(motorA, 5*sgn(mm));
+    setMotorSpeed(motorD, 5*sgn(mm));
+
+    while( fabs(getMotorEncoder(motorA)) < dAlfa) delay(5);{ // ожидание события
+        stop_move();
+        delay(250);
+    }
+}
+
+void turnEnc (int Alf, int pw){
+    resetMotorEncoder(motorA);
+    resetMotorEncoder(motorD);
+
+    setMotorSpeed(motorA, 5*sgn(Alf));
+    setMotorSpeed(motorD, -5*sgn(Alf));
+    delay(100);
+
+    long encA = getMotorEncoder(motorA);
+
+    setMotorSpeed(motorA, pw*sgn(Alf));
+    setMotorSpeed(motorD, -pw*sgn(Alf));
+
+    while (fabs(getMotorEncoder(motorA)) < fabs(Alf*4.23)-75) delay(1);{
+        setMotorSpeed(motorA, 5 * sgn(Alf));
+        setMotorSpeed(motorD, -5 * sgn(Alf));
+    }
+
+    while (fabs(getMotorEncoder(motorA)) < fabs(Alf*4.23)) delay(1);{
+        stop_move();
+        delay(250);
+    }
+}
+
+void inf_move(pw){
+    setMotorSpeed(motorA,pw);
+    setMotorSpeed(motorD,pw);
+}
+
+void detour(){
+    stop_move();
+    moveEnc(-100,50);
+    turnEnc(-90,50);
+    inf_move(50);
+}
+//t1, motorA, - = right
+//t4, motorD, + = left
+
+task main() {
+    int a, o, c, count;
+    for(int s = 7; s>0; s--){
+        resetMotorEncoder(motorA);
+        a = 0;
+        o = 0;
+        c = 0;
+        count = 0;
+
+        while (a+o<=2900) {
+            inf_move(50);
+            a = getMotorEncoder(motorA);
+            if ((a+o <2200) && (c==0) && ((getTouchValue('1') == 1) || (getTouchValue('4') == 1))) {
+                o = a;
+                c++;
+                while (true) {
+                    count++;
+                    moveEnc(-100, 50);//back
+                    turnEnc(-90, 50);//right
+                    moveEnc(300, 50);//move right
+                    turnEnc(90, 50);//left
+                    resetMotorEncoder(motorA);
+                    moveEnc(100, 50);//move left
+
+                    if ((getTouchValue('1') == 1) || (getTouchValue('4') == 1)) {
+                        continue;
+                    }
+                    else {
+                        moveEnc(520, 50);
+                        o += getMotorEncoder(motorA);
+                        turnEnc(90, 50);
+                        moveEnc(count * 300, 50);
+                        turnEnc(-90, 50);
+                        break;
+                    }
+
+                }
+                displayTextLine(2, "%d , %d", a, o);
+            }
+        }
+
+
+        stop_move();
+        moveEnc(-50,50);
+
+        if (s%2 == 0){
+            turnEnc(-90,50);
+            moveEnc(300,50);
+            turnEnc(-90,50);
+        }
+        else{
+            turnEnc(90,50);
+            moveEnc(300,50);
+            turnEnc(90,50);
+        }
+        moveEnc(-190,50);
+        delay(300);
+    }
+}
