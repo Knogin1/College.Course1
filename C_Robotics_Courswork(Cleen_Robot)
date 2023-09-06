@@ -1,0 +1,145 @@
+#include <rbc.h>
+#include <math.h>
+
+#define dkol 45
+#define drob 195
+#define mz 24
+#define bz 36
+
+int pw = 30;
+
+float distance = 300; float sten = 0;
+float A_dis, A_sten;
+LeftMotor = 'motorB'; RightMotor = 'motorA';
+
+stop(){
+    setMotorSpeed(RightMotor, 0);
+    setMotorSpeed(LeftMotor, 0);
+}
+
+void moveEnc(float mm, int pw) {
+    resetMotorEncoder(RightMotor);
+
+    setMotorSpeed(LeftMotor, 5);
+    setMotorSpeed(RightMotor, 5);
+    delay(200);
+
+    setMotorSpeed(RightMotor, pw);
+    setMotorSpeed(LeftMotor, pw);
+    float c = fabs((mm / (PI * dkol)) * 360);
+    float a = c*0.9; //max 150  min 100
+
+    while ((getMotorEncoder(RightMotor)) < (a - 50)) delay(5);{
+        setMotorSpeed(RightMotor, 5);
+        setMotorSpeed(LeftMotor, 5);
+    }
+    while ((getMotorEncoder(RightMotor)) < (a)) delay(5);{
+        stop();
+        delay(100);
+    }
+}
+
+void turnEnc(int corn, int pw) {
+    int a = fabs(corn) * (bz / mz) * (drob / dkol);
+
+    resetMotorEncoder(LeftMotor);
+
+    setMotorSpeed(LeftMotor, -5*sgn(corn));
+    setMotorSpeed(RightMotor, 5*sgn(corn));
+    delay(200);
+
+    float e2 = a*1.14; // max 1.16    min 1.15 //1.16
+
+    setMotorSpeed(LeftMotor, -1*pw*sgn(corn));
+    setMotorSpeed(RightMotor, pw*sgn(corn));
+
+    while ((fabs(getMotorEncoder(LeftMotor))) < e2-80) delay(5);{
+        setMotorSpeed(LeftMotor, -5*sgn(corn));
+        setMotorSpeed(RightMotor, 5*sgn(corn));
+    }
+    while ((fabs(getMotorEncoder(LeftMotor))) < e2-50) delay(5);{
+        stop();
+        delay(100);
+    }
+}
+
+task sensor(){
+    while(1) {;
+        if (distance > getUSDistance('1')) {
+            distance = getUSDistance('1');
+            A_dis = fabs(getMotorEncoder(LeftMotor));
+        }
+        if (sten < getUSDistance('1')){
+            sten = getUSDistance('1');
+            A_sten = fabs(getMotorEncoder(LeftMotor));
+        }
+    }
+}
+
+void moveCord(float x2, float r2, int pw){
+    float way = sqrt(x2 * x2 + r2 * r2);
+    float cor2 = (atan2f(x2, r2) * 180) / PI;
+    turnEnc(cor2, pw);
+    moveEnc(way, pw);
+}
+
+void tip(){
+    startTask(sensor);
+    turnEnc(360,pw/2);
+    stopTask(sensor);
+}
+
+void search(){
+    resetMotorEncoder(LeftMotor);
+    float e2 = A_dis*0.95;
+
+    setMotorSpeed(LeftMotor, -1*pw);
+    setMotorSpeed(RightMotor, pw);
+
+    while ((fabs(getMotorEncoder(LeftMotor))) < e2-80) delay(5);{
+        setMotorSpeed(LeftMotor, -5);
+        setMotorSpeed(RightMotor, 5);
+    }
+    while ((fabs(getMotorEncoder(LeftMotor))) < e2-50) delay(5);{
+        stop();
+        delay(100);
+    }
+}
+
+task main(){
+    tip();
+    search();
+    moveEnc((distance*10),pw); // max 50        min 20
+    turnEnc(185,pw);
+    moveEnc(distance*10+250,pw);
+
+    resetMotorEncoder(LeftMotor);
+
+    setMotorSpeed(LeftMotor, pw);
+    setMotorSpeed(RightMotor, -1*pw);
+
+    while ((fabs(getMotorEncoder(LeftMotor))) < A_dis - 90) delay(5);{
+        setMotorSpeed(LeftMotor, -5);
+        setMotorSpeed(RightMotor, 5);
+    }
+    while ((fabs(getMotorEncoder(LeftMotor))) < A_dis - 60) delay(5);{
+        stop();
+        delay(100);
+    }
+
+    resetMotorEncoder(LeftMotor);
+
+    setMotorSpeed(LeftMotor, -1*pw);
+    setMotorSpeed(RightMotor, pw);
+
+    while ((fabs(getMotorEncoder(LeftMotor))) < A_sten -80) delay(5);{
+        setMotorSpeed(LeftMotor, -5);
+        setMotorSpeed(RightMotor, 5);
+    }
+    while ((fabs(getMotorEncoder(LeftMotor))) < A_sten -50) delay(5);{
+        stop();
+        delay(100);
+    }
+
+    moveEnc((sten*10),pw);
+}
