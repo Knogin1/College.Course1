@@ -1,0 +1,50 @@
+//ДУГА ЁМОЁ
+#include <rbc.h>
+#include <math.h>
+#define Rrob_mm 95
+
+left_motor = motorA;
+right_motor = motorD;
+
+float L_left, L_right;
+float dAlfa_left, dAlfa_right;
+
+void curv(R_mm, arc_dig, pw){
+    resetMotorEncoder(right_motor);
+    resetMotorEncoder(left_motor);
+    //left
+    if (arc_dig>0) {
+        L_left = (3.14 * (R_mm + Rrob_mm) * arc_dig) / 180; //Внешняя (455,3)
+        L_right = (3.14 * (R_mm - Rrob_mm) * arc_dig) / 180;//Внутренняя (172,7)
+
+        dAlfa_left = L_left / (3.14 * 37.5) * 360; // 1392
+        dAlfa_right = L_right / (3.14 * 37.5) * 360; // 528
+
+        setMotorSpeed(left_motor, pw * (L_left / L_right));
+        setMotorSpeed(right_motor, pw);
+
+        while (fabs(getMotorEncoder(left_motor)) < fabs(dAlfa_left * 0.8)) {}
+
+        setMotorSpeed(left_motor, 0);
+        setMotorSpeed(right_motor, 0);
+    }
+    //right
+    else{
+        L_left = (3.14 * (R_mm - Rrob_mm) * arc_dig) / 180; //Внутренняя
+        L_right = (3.14 * (R_mm + Rrob_mm) * arc_dig) / 180;//Внешняя
+
+        dAlfa_left = L_left / (3.14 * 37.5) * 360; // 1392
+        dAlfa_right = L_right / (3.14 * 37.5) * 360; // 528
+
+        setMotorSpeed(left_motor, pw);
+        setMotorSpeed(right_motor, pw * (L_right / L_left));
+
+        while (fabs(getMotorEncoder(right_motor)) < fabs(dAlfa_right * 0.9)) {}
+        setMotorSpeed(left_motor, 0);
+        setMotorSpeed(right_motor, 0);
+    }
+}
+
+task main() {
+    curv(50,360,10);
+}
