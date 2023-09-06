@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+'''
+scp /home/stdplus/1.py robot@192.168.0.1:/home/robot
+'''
+import ev3dev.ev3 as ev3
+from ev3dev2.motor import OUTPUT_A, OUTPUT_D #SpeedPercent
+#from ev3dev2.sensor.lego import ColorSensor
+from ev3dev2.sound import Sound
+from time import sleep
+from ev3dev2.motor import LargeMotor
+#from ev3dev2.sensor.lego import TouchSensor
+#ts = TouchSensor('in4')
+
+sound = Sound()
+sound.beep()
+
+drob = 145
+pi = 3.14
+dkol = 45
+mz = 24
+bz = 36
+
+class Robot():	 
+	def __init__(self):
+		self.Rm = LargeMotor(OUTPUT_D)
+		self.Lm = LargeMotor(OUTPUT_A)
+	
+	def Go(self, sp, dif_sp):
+		if sp > 400 or sp < -400:
+			return 0
+		self.Rm.on(sp/4 + dif_sp/8)
+		self.Lm.on(sp/4 - dif_sp/8)
+	
+	def stop(self):
+		self.Rm.stop()
+		self.Lm.stop()
+
+	def pryamo(self, mm, sp):
+		t = abs(mm / sp)
+
+		self.Go(sp,0)
+		sleep(t)
+		self.stop()
+	
+	def duga(self, R, dg, sp):
+		Lv = abs((2 * pi * (R - drob/2) * dg)/360)
+		Ln = abs((2 * pi * (R + drob/2) * dg)/360)
+		t = abs((2*pi*R*dg)/(360*sp))
+		d_s = Ln/t - Lv/t
+
+		t = abs((2*pi*R*dg)/(360*(abs(sp)-(d_s/2))))
+
+		if dg < 0:
+			self.Go(sp, d_s)
+		
+		if dg > 0:
+			self.Go(sp, -1 * d_s)
+
+		sleep(t)
+		self.stop()
+
+	def razv(self, dg, sp): 
+		#L = abs((2 * pi * drob/2 * dg)/360)
+		#t = abs((2*pi*drob/2*dg)/360)
+		t = abs((2*pi*drob/2*dg)/(360 * sp/2.6))
+		print(t)
+
+		if dg < 0:
+			self.Go(0, sp)
+		
+		if dg > 0:
+			self.Go(0, -1 * sp)
+		
+		sleep(t)
+		self.stop()
+
+Vasya = Robot()
+
+Vasya.pryamo(200,150)
+Vasya.pryamo(200,-150)
+Vasya.pryamo(-200,-150)
+Vasya.pryamo(-200,150)
+
+Vasya.duga(300,180,150)
+Vasya.duga(300,-180,-150)
+Vasya.duga(300,180,-150)
+Vasya.duga(300,-180,150)
+
+Vasya.razv(180,300)
+Vasya.razv(-180,-300)
+Vasya.razv(180,-300)
+Vasya.razv(-180,300)
