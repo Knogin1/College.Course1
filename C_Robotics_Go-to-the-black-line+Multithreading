@@ -1,0 +1,123 @@
+#include <rbc.h>
+//include <math.h>
+
+float pw = 20;
+
+leftMotor = motorD;
+rightMotor = motorA;
+
+leftSensor = '4'; //30 => 3
+rightSensor = '1'; //57 => 7
+
+float left_value, right_value;
+float max_left, max_right;
+float min_left, min_right;
+float min, max;
+
+//Нормирование
+float norm;
+float norm_left_value, norm_right_value;
+float difNorm;
+
+//Коэффицент
+//k = 100-pw;
+float k =  80;
+
+void stop(){
+    setMotorSpeed(leftMotor, 0);
+    setMotorSpeed(rightMotor, 0);
+    delay(100);
+}
+
+void move_on_line (float coef){
+    setMotorSpeed(leftMotor, pw + coef);
+    setMotorSpeed(rightMotor, pw - coef);
+}
+
+float sensors_value() {
+    left_value = getColorReflected(leftSensor);
+    right_value = getColorReflected(rightSensor);
+}
+
+float calibration (float max_value, float min_value, float now){
+    max = max_value;
+    min = min_value;
+    if (now > max){
+        max = now;
+    }
+    else if (min > now){
+        min = now;
+    }
+}
+
+float normalization (float max_value, float min_value, float now){
+    norm = (now-min_value)/(max_value - min_value);
+}
+
+task sensors(){
+    while (true) {
+        //Считывание датчиков
+        sensors_value();
+    }
+}
+
+task normal() {
+    max_left = getColorReflected(leftSensor);max_right = getColorReflected(rightSensor);
+    min_left = getColorReflected(leftSensor);min_right = getColorReflected(rightSensor);
+    while (true) {
+        //Калибровка и нормировка значений датчиков
+        calibration(max_left, min_left, left_value);
+        max_left = max;
+        min_left = min;
+        normalization(max_left, min_left, left_value);
+        norm_left_value = norm;
+
+        calibration(max_right, min_right, right_value);
+        max_right = max;
+        min_right = min;
+        normalization(max_right, min_right, right_value);
+        norm_right_value = norm;
+
+        difNorm = norm_left_value - norm_right_value;
+    }
+}
+
+task display() {
+    while (true) {
+        displayTextLine(1, "LEFT: %f", norm_left_value);
+        displayTextLine(2, "RIGHT: %f", norm_right_value);
+        displayTextLine(3, "MIN_LEFT: %f", min_left / 100);
+        displayTextLine(4, "MIN_RIGHT: %f", min_right / 100);
+        displayTextLine(5, "MAX_LEFT: %f", max_left / 100);
+        displayTextLine(6, "MAX_RIGHT: %f", max_right / 100);
+    }
+}
+
+task main() {
+    //Запуск других потоков
+    startTask(sensors);
+    startTask(normal);
+    startTask(display);
+
+    while (true) {
+        if (norm_left_value + norm_right_value > 1.8) {
+            difNorm = norm_left_value - norm_right_value;
+            stop();
+            if (difNorm > 0) { //уходит влево
+                while (norm_right_value > 0.8) {
+                    setMotorSpeed(rightMotor, -15);
+                    setMotorSpeed(leftMotor, 15);
+                }
+            } else if (difNorm < 0 ) {   //уходит вправо
+                while (norm_left_value > 0.8) {
+                    setMotorSpeed(rightMotor, 15);
+                    setMotorSpeed(leftMotor, -15);
+                }
+
+            }
+
+            float pw_correct = ((norm_left_value) - (norm_right_value)) * k;
+            move_on_line(pw_correct);
+        }
+    }
+}
