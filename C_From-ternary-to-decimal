@@ -1,0 +1,80 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+int main(){
+    system("chcp 1251");
+    int q = 1;
+    char a3[20];
+    float a10 = 0;
+    int st = 0;
+    int w = 1;
+
+    printf("Число в троичной: ");
+    scanf("%s",&a3);
+
+    while (a3[q] != '.'){
+        q++;
+    }
+
+    for (int s = q-1; s >= 0; s--){
+        a10 += (a3[s]-'0')*(pow(3,st));
+        st++;
+    }
+    puts("\n");
+    st = -1;
+    for (int s = q+1; s != 20; s++){
+        if((a3[s]-'0')*(pow(3,st)) < 0){
+            break;
+        }
+        a10 += (a3[s]-'0')*(pow(3,st));
+        st--;
+    }
+    printf("В десятичной: %f", a10);
+
+
+    int cel = a10;
+    int p = 5;
+    char a16_c[20];
+    char a16_d[5];
+    float drob = a10-cel;
+
+    int ost;
+    int i = 0;
+
+    while(cel != 0){
+        ost = cel%16;
+    if (ost<10){
+        ost += '0';
+    }
+    else{
+        ost = ost + 'A'-10 ;
+    }
+    a16_c[i] = ost;
+    i++;
+    cel = cel/16;
+    }
+
+    for (int s = 0; s<5; s++){
+        drob = drob*16;
+        int c = drob;
+
+        if (c<10){
+        a16_d[s] = c+'0';
+        }
+        else{
+            a16_d[s] = c+'A'-10;
+
+        }
+
+        drob = drob - c;
+    }
+
+    //revers
+    printf("\nВ шеснадцатиричной: ");
+    for (int s = i ; s>=0; s--){
+        printf("%c", a16_c[s]);
+    }
+
+    printf(".%s",a16_d);
+}
