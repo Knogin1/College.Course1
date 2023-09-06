@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+
+'''
+scp /home/stdplus/1.py robot@192.168.0.1:/home/robot
+'''
+from ev3dev2.sound import Sound
+from threading import Thread
+from ev3dev2.sensor.lego import ColorSensor
+from time import sleep
+from ev3dev2.motor import LargeMotor
+from ev3dev2.motor import OUTPUT_A, OUTPUT_D 
+from ev3dev2.led import Leds
+
+leds = Leds()
+
+sound = Sound()
+sound.beep()
+
+Ls = ColorSensor('in4')
+Rs = ColorSensor('in1')
+
+lm = LargeMotor(OUTPUT_D)
+rm = LargeMotor(OUTPUT_A)
+
+
+left_s = 0
+right_s = 0
+left_norm = 0
+right_norm = 0
+
+max_l = 50
+min_l = 45
+max_r = 50
+min_r = 45
+
+class aThread(Thread):
+	def __init__(self):
+		Thread.__init__(self)
+		
+	def run(self):
+		global left_s, right_s
+		while 1: 
+			if left_s < min_l+15 and right_s < min_r+15:
+				sound.speak('Crossroad')
+				leds.set_color('LEFT', 'RED')
+				leds.set_color('RIGHT', 'RED')
+
+class Sensors(Thread):
+	def __init__(self):
+		Thread.__init__(self)
+
+	def run(self):
+		global Ls, Rs, left_s, right_s, left_norm, right_norm, max_l, max_r, min_l, min_r
+		while 1:
+			left_s = Ls.reflected_light_intensity
+			right_s = Rs.reflected_light_intensity
+			
+			if max_l < left_s:
+				max_l = left_s
+			if max_r < right_s:
+				max_r = right_s
+			if min_l > left_s:
+				min_l = left_s
+			if min_r > right_s:
+				min_r = right_s
+
+			left_norm = (left_s - min_l) / (max_l - min_l)
+			right_norm = (right_s - min_r) / (max_r - min_r)
+
+class Go():
+	POWER = 0
+	def __init__(self,pw):
+		self.POWER = pw
+
+	def line(self, pw):
+		global left_norm, right_norm, lm, rm
+		while 1:
+			dif = left_norm - right_norm
+			lm.on(pw - dif*(100-pw))
+			rm.on(pw + dif*(100-pw))
+				
+T = aThread()
+S = Sensors()
+A = Go(50)
+T.start()
+S.start()
+A.line(50)
