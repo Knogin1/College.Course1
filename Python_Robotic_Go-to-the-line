@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+
+'''
+scp /home/stdplus/1.py robot@192.168.0.1:/home/robot
+'''
+
+import ev3dev.ev3 as ev3
+from time import sleep
+from ev3dev2.led import Leds
+from ev3dev2.motor import LargeMotor
+from ev3dev2.motor import OUTPUT_A, OUTPUT_D #объекты портов A, D
+from ev3dev2.sensor.lego import ColorSensor
+from ev3dev2.sound import Sound
+
+sound = Sound()
+sound.beep()
+
+lm = LargeMotor(OUTPUT_D)
+rm = LargeMotor(OUTPUT_A)
+rs = ColorSensor('in1')
+ls = ColorSensor('in4')	
+
+pw = 40
+'''
+lmin = ls.reflected_light_intensity
+rmin = rs.reflected_light_intensity
+lmax = ls.reflected_light_intensity
+rmax = rs.reflected_light_intensity
+'''
+
+leds = Leds()
+
+lmin = 0
+rmin = 0
+lmax = 20
+rmax = 20
+
+while True:
+	leds.set_color('LEFT', 'GREEN')
+	leds.set_color('RIGHT', 'GREEN')
+	#Cчитавиние датчиков
+	Lnow = ls.reflected_light_intensity
+	Rnow = rs.reflected_light_intensity
+	
+	#Минимальные и максимальные значения
+	if rmax < Rnow:
+		rmax = Rnow
+	if rmin > Rnow:
+		rmin = Rnow
+	
+
+	if lmax < Lnow:
+		lmax = Lnow
+	if lmin > Lnow:
+		lmin = Lnow	
+	
+	#Нормировка
+	normL = (Lnow-lmin)/(lmax-lmin)
+	normR = (Rnow-rmin)/(rmax-rmin)	
+
+	dif = normL - normR
+
+	#BEEB
+	if Lnow < lmin+15 and Rnow < rmin+15:
+		lm.on(1)
+		rm.on(1)
+
+		sound.speak('Crossroad')
+		leds.set_color('LEFT', 'RED')
+		leds.set_color('RIGHT', 'RED')
+
+
+
+	#Запуск двигателя
+	lm.on(pw + dif*(100-pw))
+	rm.on(pw - dif*(100-pw))
